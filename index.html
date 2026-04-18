@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="zh-HK">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>🌱 植物模擬器 / Plant Simulator —— 方塊圖比較：肥料對植物生長的影響 / Bar Chart: Fertilizer effect on plant growth</title>
+
+    <!-- Tailwind CSS CDN (keeps the original styling approach) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Import map for ESM libs (Chart.js via esm.sh) -->
+    <script type="importmap">
+    {
+      "imports": {
+        "chart.js": "https://esm.sh/chart.js@4.4.1",
+        "chart.js/auto": "https://esm.sh/chart.js@4.4.1/auto"
+      }
+    }
+    </script>
+
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body class="min-h-screen text-emerald-950">
+    <aside id="left-ribbon" class="left-ribbon" aria-hidden="false">
+      <button class="lr-btn" data-page="simulator-page">模擬器</button>
+      <button class="lr-btn" data-page="teaching-page">教學</button>
+      <button class="lr-btn" data-page="feedback-page">回饋</button>
+      <button class="lr-btn" data-page="completion-page">完成</button>
+    </aside>
+
+    <div class="max-w-7xl mx-auto px-4 py-6">
+      <!-- header / mode switch -->
+      <div class="flex flex-col md:flex-row justify-between items-center mb-8 bg-white/90 backdrop-blur-md rounded-3xl shadow-xl p-6 border border-emerald-200">
+        <div class="flex items-center gap-x-4">
+          <div class="text-5xl">🌱</div>
+          <h1 class="text-4xl font-bold tracking-tight text-emerald-800">植物模擬器</h1>
+          <div class="text-emerald-600 text-xl font-medium">—— 方塊圖比較：肥料對植物生長的影響</div>
+        </div>
+
+        <div class="flex items-center gap-x-3 mt-4 md:mt-0">
+          <span class="text-sm font-medium uppercase tracking-widest text-emerald-700">目前模式：</span>
+          <button id="mode-btn" class="flex items-center gap-x-2 px-6 py-3 rounded-2xl font-semibold text-lg transition-all hover:scale-105 shadow-md bg-emerald-600 text-white">
+            <span id="mode-text">學生模式 / Student mode</span>
+            <span class="text-2xl">👨‍🎓</span>
+          </button>
+
+          <div id="month-display" class="ml-8 px-8 py-3 bg-emerald-100 rounded-3xl text-3xl font-bold text-emerald-800 flex items-center gap-x-3 shadow-inner">
+            第 <span id="month-number" class="text-4xl tabular-nums">0</span> 月
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGES -->
+      <div id="simulator-page" class="page active">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <!-- no fert -->
+          <div class="flex flex-col items-center bg-white/95 rounded-3xl p-8 shadow-2xl border border-blue-200">
+            <div class="text-2xl font-bold text-blue-600 mb-4 flex items-center gap-x-2">🌳 無肥料樹</div>
+            <div id="no-fert-tree-container" class="tree-container flex justify-center items-end h-96 w-full">
+              <div id="no-fert-tree" class="tree no-fert-tree">🌳</div>
+            </div>
+            <div class="mt-6 text-center">
+              <div id="no-fert-height" class="text-4xl font-bold text-blue-600">5 厘米</div>
+              <div class="text-sm text-blue-500">目前高度</div>
+            </div>
+          </div>
+
+          <!-- with fert -->
+          <div class="flex flex-col items-center bg-white/95 rounded-3xl p-8 shadow-2xl border border-emerald-200">
+            <div class="text-2xl font-bold text-emerald-600 mb-4 flex items-center gap-x-2">🌴 有肥料樹</div>
+            <div id="with-fert-tree-container" class="tree-container flex justify-center items-end h-96 w-full">
+              <div id="with-fert-tree" class="tree with-fert-tree">🌳</div>
+            </div>
+            <div class="mt-6 text-center">
+              <div id="with-fert-height" class="text-4xl font-bold text-emerald-600">5 厘米</div>
+              <div class="text-sm text-emerald-500">目前高度</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-10 bg-white/95 backdrop-blur rounded-3xl p-8 shadow-2xl">
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <button id="fert-btn" class="flex flex-col items-center justify-center bg-emerald-100 hover:bg-emerald-200 rounded-2xl p-6 transition-all active:scale-95">
+              <span class="text-4xl mb-2">🌿</span>
+              <span id="fert-status" class="font-bold text-xl">加肥料：開 🌿 / Fertilizer: ON</span>
+            </button>
+
+            <button id="water-btn" class="flex flex-col items-center justify-center bg-sky-100 hover:bg-sky-200 rounded-2xl p-6 transition-all active:scale-95">
+              <span class="text-4xl mb-2">💧</span>
+              <span id="water-status" class="font-bold text-xl">加水：開 💧 / Water: ON</span>
+            </button>
+
+            <button id="next-month-btn" class="flex flex-col items-center justify-center bg-amber-100 hover:bg-amber-200 rounded-2xl p-6 transition-all active:scale-95 col-span-2 md:col-span-1">
+              <span class="text-4xl mb-2">⏭️</span>
+              <span class="font-bold text-xl">下一月</span>
+              <span class="text-xs text-amber-600 mt-1">（最多150個月）</span>
+            </button>
+
+            <div class="flex gap-3">
+              <button id="narration-btn" class="speech-btn flex flex-col items-center justify-center bg-purple-100 hover:bg-purple-200 rounded-2xl p-6 transition-all active:scale-95">
+                <span class="text-4xl mb-2">🎙️</span>
+                <span id="narration-status" class="font-bold text-xl">廣東話旁白 / Cantonese narration</span>
+              </button>
+
+              <button id="narration-en-btn" class="speech-btn flex flex-col items-center justify-center bg-slate-100 hover:bg-slate-200 rounded-2xl p-6 transition-all active:scale-95">
+                <span class="text-4xl mb-2">🔊</span>
+                <span id="narration-status-en" class="font-bold text-xl">English narration / 英文旁白</span>
+              </button>
+            </div>
+
+            <!-- reserved empty cell so layout stays balanced on wide screens -->
+            <div class="hidden lg:block"></div>
+          </div>
+
+          <!-- Teaching page button separated below to make it visually distinct from narration controls -->
+          <div class="mt-6 flex justify-end">
+            <button id="teaching-page-btn" class="flex items-center gap-x-3 bg-violet-100 hover:bg-violet-200 rounded-2xl p-4 transition-all active:scale-95">
+              <span class="text-3xl">📘</span>
+              <span class="font-bold text-lg">教學頁</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-10 bg-white/95 rounded-3xl p-8 shadow-2xl">
+          <h2 class="text-3xl font-bold text-emerald-800 mb-4 flex items-center gap-x-3">
+            📊 兩棵樹生長高度比較（方塊圖）
+            <span id="encourage-stars" class="hidden text-4xl">⭐⭐⭐</span>
+          </h2>
+          <div class="bar-chart-container">
+            <canvas id="growth-chart" class="w-full" height="260"></canvas>
+          </div>
+          <div class="flex justify-center gap-x-8 text-sm mt-4">
+            <div class="flex items-center gap-x-2">
+              <div class="w-5 h-5 bg-blue-500 rounded"></div>
+              <span class="font-medium">無肥料樹（藍色）</span>
+            </div>
+            <div class="flex items-center gap-x-2">
+              <div class="w-5 h-5 bg-emerald-500 rounded"></div>
+              <span class="font-medium">有肥料樹（綠色）</span>
+            </div>
+          </div>
+          <div class="mt-6 text-center text-xs text-emerald-600">
+            學習目標：比較兩棵樹高度差異 • 認識方塊圖的橫軸（月份）與縱軸（高度厘米）
+          </div>
+        </div>
+      </div>
+
+      <div id="teaching-page" class="page">
+        <div class="max-w-4xl mx-auto bg-white/95 rounded-3xl p-10 shadow-2xl">
+          <h2 class="text-4xl font-bold mb-8 flex items-center gap-x-4">📊 方塊圖比較教學 / Bar Chart Comparison Teaching</h2>
+
+          <div class="flex items-center justify-between mb-8 bg-emerald-50 rounded-2xl p-4">
+            <span class="font-medium">文字大小：</span>
+            <input id="text-size-slider" type="range" min="12" max="28" value="18" class="w-64 accent-emerald-600">
+            <span id="text-size-value" class="font-mono w-12 text-right">18px</span>
+          </div>
+
+          <div id="teaching-content" class="prose prose-emerald text-xl leading-relaxed">
+            <p><strong>什麼是方塊圖？</strong></p>
+            <p>方塊圖（又叫柱狀圖）是用長方形（方塊）來顯示資料的圖表！</p>
+            <ul class="list-disc pl-8 space-y-2">
+              <li>📌 <strong>標題</strong>：告訴你圖表講緊乜嘢</li>
+              <li>📌 <strong>橫軸（X軸）</strong>：通常係時間，例如「月份」</li>
+              <li>📌 <strong>縱軸（Y軸）</strong>：通常係數量，例如「高度（厘米）」</li>
+              <li>📌 <strong>圖例</strong>：解釋藍色同綠色代表乜（無肥料 vs 有肥料）</li>
+            </ul>
+            <p class="mt-6">今次實驗：比較「有冇加肥料」對植物生長嘅影響。<br>有肥料嘅樹通常會長得更高更快！</p>
+            <p class="mt-6">觀察高度差異 → 計算厘米同米嘅換算（100厘米 = 1米）</p>
+          </div>
+
+          <div class="mt-10">
+            <h3 class="text-2xl font-semibold mb-4">📘 教學範例方塊圖（相同資料）</h3>
+            <canvas id="example-chart" class="w-full max-h-80" height="220"></canvas>
+          </div>
+
+          <div class="mt-8 flex justify-center gap-x-4">
+            <button id="play-teaching-narration" class="flex items-center gap-x-4 bg-violet-600 text-white px-10 py-4 rounded-3xl text-2xl font-semibold hover:bg-violet-700 transition-all active:scale-95">
+              <span class="text-4xl">🎤</span> 播放廣東話教學旁白 / Play Cantonese teaching narration
+            </button>
+            <button id="play-teaching-narration-en" class="flex items-center gap-x-4 bg-slate-700 text-white px-8 py-4 rounded-3xl text-2xl font-semibold hover:bg-slate-800 transition-all active:scale-95">
+              <span class="text-4xl">🔊</span> Play English teaching narration
+            </button>
+          </div>
+
+          <div class="flex justify-between mt-12">
+            <button id="back-to-sim" class="px-10 py-4 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-3xl text-xl font-semibold flex items-center gap-x-2">← 返回模擬器</button>
+            <button id="go-feedback" class="px-10 py-4 bg-amber-600 hover:bg-amber-700 text-white rounded-3xl text-xl font-semibold flex items-center gap-x-2">✍️ 下一頁：留下意見</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="feedback-page" class="page">
+        <div class="max-w-2xl mx-auto bg-white/95 rounded-3xl p-10 shadow-2xl">
+          <h2 class="text-4xl font-bold mb-8">✍️ 回饋頁 / Feedback</h2>
+
+          <div class="space-y-8">
+            <div>
+              <label class="block text-lg font-medium mb-2">你的姓名（選填）</label>
+              <input id="student-name" type="text" class="w-full px-6 py-4 rounded-2xl border border-emerald-200 focus:border-emerald-500 text-xl" placeholder="例如：小明">
+            </div>
+
+            <div>
+              <label class="block text-lg font-medium mb-2">你覺得呢個遊戲同教學點樣？有咩意見呀？</label>
+              <textarea id="feedback-text" rows="6" class="w-full px-6 py-4 rounded-2xl border border-emerald-200 focus:border-emerald-500 text-xl resize-y" placeholder="我最鍾意... / 我學到..."></textarea>
+            </div>
+
+            <button id="submit-feedback" class="w-full py-6 bg-emerald-600 hover:bg-emerald-700 text-white text-2xl font-semibold rounded-3xl">送出意見 📤</button>
+          </div>
+
+          <div id="teacher-tool" class="hidden mt-12 pt-8 border-t-2 border-emerald-200">
+            <h3 class="text-3xl font-bold text-emerald-700 mb-6">👩‍🏫 教師彙整工具</h3>
+            <div class="flex gap-x-4 mb-6">
+              <button id="export-csv" class="flex-1 py-4 bg-amber-500 text-white rounded-2xl text-xl font-semibold">匯出全部回覆為 CSV</button>
+              <button id="clear-feedbacks" class="flex-1 py-4 bg-red-500 text-white rounded-2xl text-xl font-semibold">清除所有資料</button>
+            </div>
+
+            <div class="max-h-96 overflow-auto rounded-2xl border border-emerald-200 bg-white">
+              <table id="feedback-table" class="w-full text-left">
+                <thead class="bg-emerald-100 sticky top-0">
+                  <tr>
+                    <th class="px-6 py-4">姓名</th>
+                    <th class="px-6 py-4">意見</th>
+                    <th class="px-6 py-4">日期</th>
+                  </tr>
+                </thead>
+                <tbody id="feedback-tbody" class="divide-y text-lg"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="mt-12 flex justify-center">
+            <button id="complete-task" class="px-12 py-4 bg-violet-600 text-white rounded-3xl text-2xl font-semibold flex items-center gap-x-3">完成任務 🎉</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="completion-page" class="page">
+        <div class="max-w-2xl mx-auto text-center py-20">
+          <div class="text-[12rem] mb-8 animate-bounce">🌱🎉</div>
+          <h2 class="text-6xl font-bold text-emerald-800 mb-6">恭喜你完成咗實驗！</h2>
+          <p class="text-3xl text-emerald-700 mb-12">你已經學會用方塊圖比較植物生長，明白肥料有助植物長得更快更高！</p>
+
+          <div id="restart-sim" class="cursor-pointer inline-flex items-center gap-x-4 bg-white shadow-2xl rounded-3xl px-16 py-8 text-3xl font-bold text-emerald-700 hover:scale-110 transition-transform">
+            <span>🌱</span><span>返回模擬器重新開始</span><span>🌱</span>
+          </div>
+
+          <div class="mt-16 text-sm text-emerald-600">
+            小學二年級數學學習目標已達成 ✅<br>方塊圖比較 • 變數控制 • 資料視覺化 • 厘米/米換算
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+  </body>
+</html>
